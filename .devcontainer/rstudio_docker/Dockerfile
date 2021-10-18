@@ -22,10 +22,13 @@ RUN /rocker_scripts/install_pandoc.sh
 # install key dependencies of certain packages that could be installed later
 RUN apt-get update \
     && export DEBIAN_FRONTEND=noninteractive \
-    && apt-get -y install --no-install-recommends libxml2-dev libsodium-dev libssl-dev imagemagick libmagick++-dev libgit2-dev libssh2-1-dev zlib1g-dev librsvg2-dev libudunits2-dev libfontconfig1-dev libfreetype6-dev 
+    && apt-get -y install --no-install-recommends libxml2-dev libsodium-dev libssl-dev imagemagick libmagick++-dev libgit2-dev libssh2-1-dev zlib1g-dev librsvg2-dev libudunits2-dev libfontconfig1-dev libfreetype6-dev global
 
 # install R packages needed for VSCode interaction and package management
 RUN install2.r languageserver renv remotes
+RUN installGithub.r ropensci-review-tools/pkgstats
+
+RUN R --no-save -e "pkgstats::ctags_install()"
 
 # install radian via python and pip3
 RUN apt-get update \
