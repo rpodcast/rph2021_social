@@ -28,13 +28,14 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 # key dependencies for certain R packages
 RUN apt-get update \
     && export DEBIAN_FRONTEND=noninteractive \
-    && apt-get -y install --no-install-recommends software-properties-common libssl-dev libxml2-dev libcurl4-openssl-dev python3-pip pandoc \
-    && apt-get -y install --no-install-recommends libfreetype6-dev libfontconfig1-dev tk \
+    && apt-get -y install --no-install-recommends software-properties-common libssl-dev libxml2-dev libcurl4-openssl-dev python3-pip pandoc vim global libglpk-dev libgmp3-dev libfreetype6-dev libfontconfig1-dev tk libzmq3-dev build-essential g++ libclang-dev autotools-dev autoconf automake \
     && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 # install R packages needed for VSCode interaction and package management
-RUN install2.r languageserver renv remotes
-RUN installGithub.r nx10/httpgd
+RUN install2.r languageserver renv remotes httpgd
+RUN installGithub.r ropensci-review-tools/pkgstats
+
+RUN R --no-save -e "pkgstats::ctags_install()"
 
 # install radian via python and pip3
 RUN apt-get update \
@@ -58,9 +59,9 @@ RUN echo "RENV_PATHS_CACHE=/renv/cache" >> /usr/local/lib/R/etc/Renviron
 COPY library-scripts/.Rprofile-vscode /renv/.Rprofile-vscode
 
 # [Optional] Uncomment this section to add addtional system dependencies needed for project
-# RUN apt-get update \
-#     && export DEBIAN_FRONTEND=noninteractive \
-#     && apt-get -y install --no-install-recommends ---packages list----
+RUN apt-get update \
+     && export DEBIAN_FRONTEND=noninteractive \
+     && apt-get -y install --no-install-recommends libglpk-dev libgmp3-dev
 
 # [Optional] Set the default user. Omit if you want to keep the default as root.
 USER $USERNAME

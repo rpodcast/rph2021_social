@@ -10,6 +10,7 @@ services:
       - /home/${USER}/.ssh:/home/${USER}/.ssh
       - ${RENV_PATHS_CACHE_HOST}:${RENV_PATHS_CACHE_CONTAINER}
       - ${VOLUME_PATH}/.devcontainer/rstudio_config_dir:/home/${USER}/.config/rstudio
+      - /media/nucnas/r_opensource_projects/cran_mirror:/cran_mirror
     restart:
       unless-stopped
     ports:
