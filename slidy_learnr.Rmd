@@ -1,0 +1,146 @@
+---
+title: "slidy learnr"
+output: slidy_presentation
+runtime: shiny_prerendered
+description: >
+  This is a demo of a learnr tutorial in slidy format
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(learnr)
+library(dygraphs)
+
+qbank <- list(
+  q1 = list(
+    text = "What number is the letter A in the English alphabet?",
+    type = "learnr_radio",
+    answers = list(
+      list(
+        text = "8",
+        correct = FALSE
+      ),
+      list(
+        text = "14",
+        correct = FALSE
+      ),
+      list(
+        text = "1",
+        correct = TRUE
+      ),
+      list(
+        text = "23",
+        correct = FALSE
+      )
+    )
+  )
+)
+```
+
+## Time Series with dygraphs
+
+Modify the dyOptions to customize the graph's appearance:
+
+```{r dygraph-options, exercise=TRUE, exercise.eval=TRUE, fig.height=5.5}
+dygraph(ldeaths) %>%
+  dyOptions(fillGraph = TRUE, drawGrid = TRUE)
+```
+
+
+## Question 1
+
+```{r letter-a, echo=FALSE}
+#answers <- purrr::walk(qbank$q1$answers, function(x) learnr::answer, x)
+#question(qbank$q1$text, purrr::map(qbank$q1$answers, ~rlang::call2("answer", .x)))
+second.function <- function(..., name) {
+  print(paste("This is the name:", name))
+  print(paste("These are the arguments:", ...))
+}
+
+first.function <- function(..., name) {
+  argument.list <- list(...)
+
+  new.args <- lapply(argument.list, `^`, 2) 
+  new.args[["name"]] <- name
+
+  do.call(second.function, new.args)
+}
+
+# this works but is hard-coded
+do.call(
+  question, 
+  list(
+    text = qbank$q1$text, 
+    do.call(
+      answer, qbank$q1$answers[[1]]
+    ),
+    do.call(
+      answer, qbank$q1$answers[[2]]
+    ),
+    do.call(
+      answer, qbank$q1$answers[[3]]
+    ),
+    do.call(
+      answer, qbank$q1$answers[[4]]
+    )
+  )
+)
+#first.function(1, 2, 3, name = "Test")
+
+
+
+#purrr::walk(qbank$q1$answers, ~rlang::exec(learnr::answer, .x))
+# question("What number is the letter A in the English alphabet? What number is the letter A in the English alphabet? What number is the letter A in the English alphabet? What number is the letter A in the English alphabet? What number is the letter A in the English alphabet? What number is the letter A in the English alphabet?",
+#   answer("8"),
+#   answer("14"),
+#   answer("1", correct = TRUE),
+#   answer("23")
+# )
+```
+
+```{r try2}
+# this works but is hard-coded
+do.call(
+  question, 
+  list(
+    text = qbank$q1$text, 
+    
+    #Map(function(f, x) do.call(f, x), list(answer, answer, answer, answer), qbank$q1$answers)
+    #purrr::walk(qbank$q1$answers, ~do.call(answer, .x))
+    # do.call(
+    #   answer, qbank$q1$answers[[1]]
+    # ),
+    # do.call(
+    #   answer, qbank$q1$answers[[2]]
+    # ),
+    # do.call(
+    #   answer, qbank$q1$answers[[3]]
+    # ),
+    # do.call(
+    #   answer, qbank$q1$answers[[4]]
+    # )
+  )
+)
+
+
+do.call(
+  answer, qbank$q1$answers[[4]]
+)
+
+do.call(
+  call, 
+  list("answer", "answer", "answer", "answer"), 
+  quote = TRUE)
+```
+
+
+## Question 3
+
+```{r where-am-i, echo=FALSE}
+question("Where are you right now? (select ALL that apply) Where are you right now? (select ALL that apply) Where are you right now? (select ALL that apply) Where are you right now? (select ALL that apply) Where are you right now? (select ALL that apply) Where are you right now? (select ALL that apply) Where are you right now? (select ALL that apply) Where are you right now? (select ALL that apply)",
+  answer(text = "Planet Earth", correct = TRUE),
+  answer(text = "Pluto"),
+  answer(text = "At a computing device", correct = TRUE),
+  answer(text = "In the Milky Way", correct = TRUE)
+)
+```

@@ -1,0 +1,156 @@
+---
+title: "Package metrics!"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyr)
+library(pkgstats)
+library(purrr)
+library(DT)
+load("df3.rds")
+```
+
+## Explore package metrics data
+
+Here are some possible questions we could build our trivia questions around:
+
+-   Which package in the tidyverse has the most lines of R code?
+
+-   Which of the following packages in the shiny ecosystem have the most functions?
+
+-   How many R packages on CRAN serve data sets?
+
+-   Which of the following packages has the most if statements?
+
+-   What package other than `{tidyverse}` has the most recursive dependencies?
+
+-   How many libraries does tidymodels import?
+
+-   How many deprecated color packages?
+
+-   How many vignettes are available across CRAN?
+
+-   How many packages still remain from R 1.4?
+
+-   What package has the most versions published on CRAN?
+
+-   Other than R and C/C++, what is the most compiled language that R wraps around?
+
+-   Which author has published the most packages?
+
+-   Which package has the longest/shortest name?
+
+-   What proportion of packages use `.` instead of camel case?
+
+-   How many packages use a capital R other than as the first letter?
+
+-   Which package has the most Rs in its name?
+
+-   Which packages have the longest and shortest names?
+
+-   How many packages have function names that namespace themselves (i.e. stringr has `str_` functions to namespace)
+
+-   What package has the most contributors?
+
+-   Which package has the least number of lines?
+
+-   Which package has the most amount of documentation (or documentation to code ratio)
+
+-   (TO DO: See if packages are written in different languages)
+
+-   Which function has the most amount of lines and what package is it from?
+
+-   Out of all of the package maintainers, what are the top 10 email domains?
+
+-   clyclomatic complexity
+-   How many packages import Shiny?
+-   How many packages import `%>%` (magrittr)?
+
+
+### Exploring for answers
+
+#### How many libraries does `tidymodels` import?
+
+First we will derive the number of depends or imports for each package
+
+
+```{r tidymodels}
+df3 <- df3 %>%
+  #filter(package == "tidymodels") %>%
+  #select(package, depends, imports) %>%
+  mutate(n_depends = ifelse(depends == "NA", 0, stringr::str_count(depends, ",") + 1)) %>%
+  mutate(n_imports = ifelse(imports == "NA", 0, stringr::str_count(imports, ",") + 1)) %>%
+  mutate(dependency_total = n_depends + n_imports)
+
+select(df3, package, n_depends, n_imports, dependency_total) %>%
+  slice_max(dependency_total)
+
+filter(df3, package == "tidymodels") %>%
+  select(package, n_depends, n_imports, dependency_total)
+```
+
+#### Which package in the tidyverse has the most lines of R code?
+
+```{r}
+# step one: grab all tidyverse packages
+tidy_pkgs <- df3 %>%
+  filter(package == "tidyverse") %>%
+  select(package, imports, depends, suggests) %>%
+  pull(imports) %>%
+  stringr::str_split(., ",") %>%
+  .[[1]] %>%
+  stringr::str_trim(.)
+
+tidy_pkgs
+
+# which tidyverse package has the most imports (dependencies)
+res <- df3 %>%
+  filter(package %in% tidy_pkgs) %>%
+  select(package, n_depends, n_imports, dependency_total) %>%
+  arrange(desc(dependency_total))
+
+# which tidyverse package has the most lines of R code
+res <- df3 %>%
+  filter(package %in% tidy_pkgs) %>%
+  select(package, loc_R, loc_src, blank_lines_R, comment_lines_R) %>%
+  arrange(desc(loc_R))
+
+res
+```
+
+#### Packages with longest/shortest names
+
+We could also ask how long is the longest package name?
+
+```{r}
+res <- df3 %>%
+  mutate(pkg_n_letters = stringr::str_length(package)) %>%
+  select(package, pkg_n_letters) %>%
+  arrange(desc(pkg_n_letters))
+
+# how many R's in the package name
+res <- df3 %>%
+  mutate(n_letters_R = stringr::str_count(package, "r|R")) %>%
+  select(package, n_letters_R) %>%
+  arrange(desc(n_letters_R))
+
+res
+  
+```
+#### Other than R and C/C++, what is the most compiled language that R wraps around?
+
+```{r}
+sort(unique(df3$languages))
+```
+
+##### Which package has the most amount of documentation (or documentation to code ratio)
+
+```{r}
+df3 %>%
+  select(package, doclines_per_fn_exp_mn, doclines_per_fn_exp_md, doclines_per_fn_not_exp_mn, doclines_per_fn_not_exp_md, docchars_per_par_exp_mn, docchars_per_par_exp_md) %>%
+  arrange(desc(doclines_per_fn_exp_md))
+```
+

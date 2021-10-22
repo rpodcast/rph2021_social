@@ -15,6 +15,40 @@ pkgstats_files <- function(path, create_chunks = TRUE, chunk_size = 1000L) {
   return(flist)
 }
 
+gen_pkg_list <- function(src_path, 
+                         latest = TRUE, 
+                         archive = FALSE, 
+                         prev_versions = FALSE,
+                         save_file_list = TRUE,
+                         file_name = "flist.rds") {
+  
+  latest_files <- archive_files <- prev_files <- NULL
+  
+  if (latest) {
+    flist <- fs::dir_ls(src_path, recurse = FALSE, type = "file")
+  }
+  
+  if (archive) {
+    archive_files <- fs::path(src_path, "Archive")
+  }
+  
+  if (prev_versions) {
+    pkg_dir_raw <- fs::dir_ls(src_path, recurse = FALSE, type = "directory")
+    prev_version_files <- fs::path_filter(pkg_dir_raw, regexp = "[0-9]\\.")
+  }
+  
+  if (any(archive, prev_versions)) {
+    pkg_dir_analysis <- c(prev_version_files, archive_files)
+    flist <- c(flist, pkgstats_files(pkg_dir_analysis, create_chunks = FALSE))
+  }
+  
+  if (save_file_list) {
+    saveRDS(flist, file = file_name)
+  }
+  
+  return(flist)
+}
+
 pkgstats_custom <- function(file, 
                             p,
                             common_root = "/cran_mirror/tarballs/src/contrib",
@@ -74,7 +108,25 @@ pkgstats_custom <- function(file,
 
 pkgstats_mapper <- function(file) {
   p <- progressor(steps = length(file))
-  future_map(file, pkgstats_custom, p = p, .options = furrr_options(seed = TRUE))
+  future_map(file, pkgstats_custom, p = p, .options = furrr_options(seed = TRUE, scheduling = 2L))
+}
+
+pkgstats_summary_custom <- function(s, p) {
+  summ <- tryCatch(pkgstats::pkgstats_summary(s), error = function(e) NULL)
+  if (is.null (summ)) { # pkgstats failed
+    summ <- pkgstats_summary() # null summary
+    p <- strsplit(file, .Platform$file.sep)[[1]]
+    p <- strsplit(utils::tail(p, 1), "\\_")[[1]]
+    summ["package"] <- p[1]
+    summ["version"] <- gsub("\\.tar\\.gz$", "", p[2])
+  } 
+  p()
+  return(summ)
+}
+
+pkgstats_summary_mapper <- function(s) {
+  p <- progressor(steps = length(s))
+  future_map(s, pkgstats_summary_custom, p = p, .options = furrr_options(seed = TRUE, scheduling = 2L))
 }
 
 pkgstats_ext_network <- function(s) {
@@ -94,4 +146,21 @@ pkgstats_ext_network <- function(s) {
     rownames(x) <- NULL
     return(x)
   }
+}
+
+pkgstats_ext_network_custom <- function(summ, p) {
+  ext_calls <- summ$external_calls
+  x <- strsplit(ext_calls, ",")[[1]]
+  x <- do.call(rbind, strsplit(x, ":"))
+  x <- data.frame(
+    pkg = x[,1],
+    ncalls = as.integer(x[,2]),
+    n_unique = as.integer(x[,3])
+  )
+  x$ncalls_rel <- round(x$ncalls / sum(x$ncalls), 3)
+  x$n_unique_rel <- round(x$n_unique / sum(x$n_unique), 3)
+  x <- x[order(x$ncalls, decreasing = TRUE), ]
+  rownames(x) <- NULL
+  p()
+  return(x)
 }
