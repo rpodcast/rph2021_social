@@ -10,6 +10,8 @@ description: >
 knitr::opts_chunk$set(echo = TRUE)
 library(learnr)
 library(dygraphs)
+library(dplyr)
+library(purrr)
 
 qbank <- list(
   q1 = list(
@@ -107,40 +109,45 @@ do.call(
     
     #Map(function(f, x) do.call(f, x), list(answer, answer, answer, answer), qbank$q1$answers)
     #purrr::walk(qbank$q1$answers, ~do.call(answer, .x))
-    # do.call(
-    #   answer, qbank$q1$answers[[1]]
-    # ),
-    # do.call(
-    #   answer, qbank$q1$answers[[2]]
-    # ),
-    # do.call(
-    #   answer, qbank$q1$answers[[3]]
-    # ),
-    # do.call(
-    #   answer, qbank$q1$answers[[4]]
-    # )
+    do.call(
+      answer, qbank$q1$answers[[1]]
+    ),
+    do.call(
+      answer, qbank$q1$answers[[2]]
+    ),
+    do.call(
+      answer, qbank$q1$answers[[3]]
+    ),
+    do.call(
+      answer, qbank$q1$answers[[4]]
+    )
   )
 )
 
-
-do.call(
-  answer, qbank$q1$answers[[4]]
-)
-
-do.call(
-  call, 
-  list("answer", "answer", "answer", "answer"), 
-  quote = TRUE)
 ```
 
 
 ## Question 3
 
 ```{r where-am-i, echo=FALSE}
-question("Where are you right now? (select ALL that apply) Where are you right now? (select ALL that apply) Where are you right now? (select ALL that apply) Where are you right now? (select ALL that apply) Where are you right now? (select ALL that apply) Where are you right now? (select ALL that apply) Where are you right now? (select ALL that apply) Where are you right now? (select ALL that apply)",
-  answer(text = "Planet Earth", correct = TRUE),
-  answer(text = "Pluto"),
-  answer(text = "At a computing device", correct = TRUE),
-  answer(text = "In the Milky Way", correct = TRUE)
+question2 <- lift_df(question)
+df <- tibble::tibble(
+  f = c("answer", "answer"),
+  params = list(
+    list(text = "14", correct = FALSE),
+    list(text = "1", correct = TRUE)
+  )
 )
+
+tmp <- invoke_map(df$f, df$params)
+
+question2(tmp, text = "Hello?", type = "learnr_radio")
+#invoke(df$f[1], df$params)
+
+# question("Where are you right now?",
+#   answer(text = "Planet Earth", correct = TRUE),
+#   answer(text = "Pluto"),
+#   answer(text = "At a computing device", correct = TRUE),
+#   answer(text = "In the Milky Way", correct = TRUE)
+# )
 ```
