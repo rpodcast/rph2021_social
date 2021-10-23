@@ -87,126 +87,29 @@ glue::glue('```{r <<label>>, echo=FALSE}', label = label, .open="<<", .close=">>
     ), envir = environment(), quiet = TRUE))
   return(tmp)
 }
-```
 
-```{r create-slides, include=FALSE}
 out <- purrr::map_chr(seq_along(qbank), ~{
   glue::glue("\n\n## Question <<i>>\n\n```{r q-<<i>>, echo=FALSE}\nHTML(gen_question_rmd(qbank[[<<i>>]], label='qq<<i>>'))\n```\n\n",
              i = .x,
              .open = "<<",
              .close = ">>")
 })
-```
 
-`r paste(knitr::knit_child(text = out), collapse = '\n')`
-
-## Old 1
-
-```{r qqq, eval = FALSE, echo=FALSE}
-HTML(gen_question_rmd(x = qbank[[1]]))
-```
-
-## Old 2
-
-```{r letter-a, echo=FALSE, eval=FALSE}
-#answers <- purrr::walk(qbank$q1$answers, function(x) learnr::answer, x)
-#question(qbank$q1$text, purrr::map(qbank$q1$answers, ~rlang::call2("answer", .x)))
-second.function <- function(..., name) {
-  print(paste("This is the name:", name))
-  print(paste("These are the arguments:", ...))
+render_child <- function(text) {
+  tmp <- tempfile(fileext = ".md")
+  xfun::write_utf8(knitr::knit_child(text=text, quiet = TRUE), tmp)
+  res <- rmarkdown::render(tmp, 'html_fragment', quiet = TRUE) # should we add `envir = knitr::knit_global()` ?
+  xfun::read_utf8(res)
 }
-
-first.function <- function(..., name) {
-  argument.list <- list(...)
-
-  new.args <- lapply(argument.list, `^`, 2) 
-  new.args[["name"]] <- name
-
-  do.call(second.function, new.args)
-}
-
-# this works but is hard-coded
-do.call(
-  question, 
-  list(
-    text = qbank$q1$text, 
-    do.call(
-      answer, qbank$q1$answers[[1]]
-    ),
-    do.call(
-      answer, qbank$q1$answers[[2]]
-    ),
-    do.call(
-      answer, qbank$q1$answers[[3]]
-    ),
-    do.call(
-      answer, qbank$q1$answers[[4]]
-    )
-  )
-)
-#first.function(1, 2, 3, name = "Test")
-
-
-
-#purrr::walk(qbank$q1$answers, ~rlang::exec(learnr::answer, .x))
-# question("What number is the letter A in the English alphabet? What number is the letter A in the English alphabet? What number is the letter A in the English alphabet? What number is the letter A in the English alphabet? What number is the letter A in the English alphabet? What number is the letter A in the English alphabet?",
-#   answer("8"),
-#   answer("14"),
-#   answer("1", correct = TRUE),
-#   answer("23")
-# )
 ```
 
-
-## Old 3
-
-```{r try2, eval=FALSE}
-# this works but is hard-coded
-do.call(
-  question, 
-  list(
-    text = qbank$q1$text, 
-    do.call(
-      answer, qbank$q1$answers[[1]]
-    ),
-    do.call(
-      answer, qbank$q1$answers[[2]]
-    ),
-    do.call(
-      answer, qbank$q1$answers[[3]]
-    ),
-    do.call(
-      answer, qbank$q1$answers[[4]]
-    )
-  )
-)
-
+```{r create-slides22, eval = TRUE, results='asis'}
+out <- purrr::map_chr(seq_along(qbank), ~{
+  knitr::knit_child(text = glue::glue("\n\n## Question <<i>>\n\n```{r q-<<i>>, echo=FALSE}\nHTML(gen_question_rmd(qbank[[<<i>>]], label='qq<<i>>'))\n```\n\n",
+             i = .x,
+             .open = "<<",
+             .close = ">>"), quiet = TRUE)
+})
+cat(unlist(out), sep = '\n')
 ```
 
-
-## Question 3
-
-```{r where-am-i, echo=FALSE, eval=FALSE}
-#gen_question(qbank[[1]])
-##########################################
-# question2 <- lift_dl(question)
-# df <- tibble::tibble(
-#   f = c("answer", "answer"),
-#   params = list(
-#     list(text = "14", correct = FALSE),
-#     list(text = "1", correct = TRUE)
-#   )
-# )
-# 
-# tmp <- invoke_map(df$f, df$params)
-# question2(tmp, text = "Hello?", type = "learnr_radio")
-
-###############################################################
-
-# question("Where are you right now?",
-#   answer(text = "Planet Earth", correct = TRUE),
-#   answer(text = "Pluto"),
-#   answer(text = "At a computing device", correct = TRUE),
-#   answer(text = "In the Milky Way", correct = TRUE)
-# )
-```
