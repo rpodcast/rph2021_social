@@ -7,11 +7,13 @@ description: >
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 library(learnr)
 library(dygraphs)
 library(dplyr)
 library(purrr)
+
+question2 <- purrr::lift_dl(question)
 
 qbank <- list(
   q1 = list(
@@ -35,23 +37,78 @@ qbank <- list(
         correct = FALSE
       )
     )
+  ),
+  q2 = list(
+    text = "Who is the best?",
+    type = "learnr_radio",
+    answers = list(
+      list(
+        text = "Jericho",
+        correct = TRUE
+      ),
+      list(
+        text = "Nia",
+        correct = FALSE
+      )
+    )
   )
 )
+
+# assumes x is a list pertaining to the invidual question
+# this function does not work when put into a chunk
+# so I guess I need to make this like a child rmarkdown fragment
+gen_question <- function(x, type = "leanr_radio") {
+  df <- tibble::tibble(
+    f = rep("answer", length(x[["answers"]])),
+    params = x[["answers"]]
+  )
+
+  #tmp <- invoke_map(df$f, df$params)
+  question2(invoke_map(df$f, df$params), text = x[["text"]], type = type)
+}
+
+
+gen_question_rmd <- function(x, label, type = "learnr_radio") {
+  withr::local_options(list(htmltools.preserve.raw = FALSE))
+  label <- label
+  tmp <- markdown(knitr::knit_child(
+    text = c(
+glue::glue('```{r <<label>>, echo=FALSE}', label = label, .open="<<", .close=">>"),
+'question2 <- lift_dl(question)',
+'',
+'df <- tibble::tibble(f = rep("answer", length(x[["answers"]])), params = x[["answers"]])',
+'',
+'tmp <- invoke_map(df$f, df$params)',
+'',
+'question2(tmp, text = x[["text"]], type = type)',
+'',
+'```',
+''
+    ), envir = environment(), quiet = TRUE))
+  return(tmp)
+}
 ```
 
-## Time Series with dygraphs
-
-Modify the dyOptions to customize the graph's appearance:
-
-```{r dygraph-options, exercise=TRUE, exercise.eval=TRUE, fig.height=5.5}
-dygraph(ldeaths) %>%
-  dyOptions(fillGraph = TRUE, drawGrid = TRUE)
+```{r create-slides, include=FALSE}
+out <- purrr::map_chr(seq_along(qbank), ~{
+  glue::glue("\n\n## Question <<i>>\n\n```{r q-<<i>>, echo=FALSE}\nHTML(gen_question_rmd(qbank[[<<i>>]], label='qq<<i>>'))\n```\n\n",
+             i = .x,
+             .open = "<<",
+             .close = ">>")
+})
 ```
 
+`r paste(knitr::knit_child(text = out), collapse = '\n')`
 
-## Question 1
+## Old 1
 
-```{r letter-a, echo=FALSE}
+```{r qqq, eval = FALSE, echo=FALSE}
+HTML(gen_question_rmd(x = qbank[[1]]))
+```
+
+## Old 2
+
+```{r letter-a, echo=FALSE, eval=FALSE}
 #answers <- purrr::walk(qbank$q1$answers, function(x) learnr::answer, x)
 #question(qbank$q1$text, purrr::map(qbank$q1$answers, ~rlang::call2("answer", .x)))
 second.function <- function(..., name) {
@@ -100,15 +157,15 @@ do.call(
 # )
 ```
 
-```{r try2}
+
+## Old 3
+
+```{r try2, eval=FALSE}
 # this works but is hard-coded
 do.call(
   question, 
   list(
     text = qbank$q1$text, 
-    
-    #Map(function(f, x) do.call(f, x), list(answer, answer, answer, answer), qbank$q1$answers)
-    #purrr::walk(qbank$q1$answers, ~do.call(answer, .x))
     do.call(
       answer, qbank$q1$answers[[1]]
     ),
@@ -129,20 +186,22 @@ do.call(
 
 ## Question 3
 
-```{r where-am-i, echo=FALSE}
-question2 <- lift_df(question)
-df <- tibble::tibble(
-  f = c("answer", "answer"),
-  params = list(
-    list(text = "14", correct = FALSE),
-    list(text = "1", correct = TRUE)
-  )
-)
+```{r where-am-i, echo=FALSE, eval=FALSE}
+#gen_question(qbank[[1]])
+##########################################
+# question2 <- lift_dl(question)
+# df <- tibble::tibble(
+#   f = c("answer", "answer"),
+#   params = list(
+#     list(text = "14", correct = FALSE),
+#     list(text = "1", correct = TRUE)
+#   )
+# )
+# 
+# tmp <- invoke_map(df$f, df$params)
+# question2(tmp, text = "Hello?", type = "learnr_radio")
 
-tmp <- invoke_map(df$f, df$params)
-
-question2(tmp, text = "Hello?", type = "learnr_radio")
-#invoke(df$f[1], df$params)
+###############################################################
 
 # question("Where are you right now?",
 #   answer(text = "Planet Earth", correct = TRUE),
