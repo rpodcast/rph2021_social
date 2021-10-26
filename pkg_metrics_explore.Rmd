@@ -17,57 +17,36 @@ load("df3.rds")
 
 Here are some possible questions we could build our trivia questions around:
 
--   Which package in the tidyverse has the most lines of R code?
-
--   Which of the following packages in the shiny ecosystem have the most functions?
-
--   How many R packages on CRAN serve data sets?
-
--   Which of the following packages has the most if statements?
-
--   What package other than `{tidyverse}` has the most recursive dependencies?
-
--   How many libraries does tidymodels import?
-
--   How many deprecated color packages?
-
--   How many vignettes are available across CRAN?
-
--   How many packages still remain from R 1.4?
-
--   What package has the most versions published on CRAN?
-
--   Other than R and C/C++, what is the most compiled language that R wraps around?
-
--   Which author has published the most packages?
-
--   Which package has the longest/shortest name?
-
--   What proportion of packages use `.` instead of camel case?
-
--   How many packages use a capital R other than as the first letter?
-
--   Which package has the most Rs in its name?
-
--   Which packages have the longest and shortest names?
-
--   How many packages have function names that namespace themselves (i.e. stringr has `str_` functions to namespace)
-
--   What package has the most contributors?
-
--   Which package has the least number of lines?
-
--   Which package has the most amount of documentation (or documentation to code ratio)
-
--   (TO DO: See if packages are written in different languages)
-
--   Which function has the most amount of lines and what package is it from?
-
--   Out of all of the package maintainers, what are the top 10 email domains?
-
--   clyclomatic complexity
--   How many packages import Shiny?
--   How many packages import `%>%` (magrittr)?
+* [x] Which package in the tidyverse has the most lines of R code?
+* [ ] Which package has the largest size of total data size?
+* [ ] Which package has the highest proportion of functions per R script?
+* [x] Which package in the tidyverse has the most imports (dependencies)?
+* [ ] Which of the following packages in the shiny ecosystem have the most functions?
+* [ ] How many R packages on CRAN serve data sets?
+* [ ] Which of the following packages has the most if statements?
+* [ ] What package other than `{tidyverse}` has the most recursive dependencies?
+* [x] How many libraries does tidymodels import?
+* [ ] How many deprecated color packages?
+* [ ] How many vignettes are available across CRAN?
+* [ ] How many packages still remain from R 1.4?
+* [ ] What package has the most versions published on CRAN?
+* [ ] Other than R and C/C++, what is the most compiled language that R wraps around?
+* [ ] Which author has published the most packages?
+* [ ] Which package has the longest/shortest name?
+* [ ] What proportion of packages use `.` instead of camel case?
+* [ ] How many packages use a capital R other than as the first letter?
+* [ ] Which package has the most Rs in its name?
+* [ ] Which packages have the longest and shortest names?
+* [ ] How many packages have function names that namespace themselves (i.e. stringr has `str_` functions to namespace)
+* [ ] What package has the most contributors?
+* [ ] Which package has the least number of lines?
+* [ ] Which package has the most amount of documentation (or documentation to code ratio)
+* [ ] (TO DO: See if packages are written in different languages)
+* [ ] Which function has the most amount of lines and what package is it from?
+* [ ] Out of all of the package maintainers, what are the top 10 email domains?
+* [ ] clyclomatic complexity
+* [ ] How many packages import Shiny?
+* [ ] How many packages import `%>%` (magrittr)?
 
 
 ### Exploring for answers
@@ -106,11 +85,8 @@ tidy_pkgs <- df3 %>%
 
 tidy_pkgs
 
-# which tidyverse package has the most imports (dependencies)
-res <- df3 %>%
-  filter(package %in% tidy_pkgs) %>%
-  select(package, n_depends, n_imports, dependency_total) %>%
-  arrange(desc(dependency_total))
+
+
 
 # which tidyverse package has the most lines of R code
 res <- df3 %>%
@@ -119,6 +95,15 @@ res <- df3 %>%
   arrange(desc(loc_R))
 
 res
+```
+
+#### which tidyverse package has the most imports (dependencies)
+
+```{r}
+res <- df3 %>%
+  filter(package %in% tidy_pkgs) %>%
+  select(package, n_depends, n_imports, dependency_total) %>%
+  arrange(desc(dependency_total))
 ```
 
 #### Packages with longest/shortest names
