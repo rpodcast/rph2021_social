@@ -10,7 +10,9 @@ library(tidyr)
 library(pkgstats)
 library(purrr)
 library(DT)
-load("df3.rds")
+library(pkgsearch)
+
+df3 <- readRDS("df3.rds")
 ```
 
 ## Explore package metrics data
@@ -35,10 +37,10 @@ Here are some possible questions we could build our trivia questions around:
 * [ ] Which package has the longest/shortest name?
 * [ ] What proportion of packages use `.` instead of camel case?
 * [ ] How many packages use a capital R other than as the first letter?
-* [ ] Which package has the most Rs in its name?
+* [x] Which package has the most Rs in its name?
 * [ ] Which packages have the longest and shortest names?
 * [ ] How many packages have function names that namespace themselves (i.e. stringr has `str_` functions to namespace)
-* [ ] What package has the most contributors?
+* [x] What package has the most contributors?
 * [ ] Which package has the least number of lines?
 * [ ] Which package has the most amount of documentation (or documentation to code ratio)
 * [ ] (TO DO: See if packages are written in different languages)
@@ -47,9 +49,59 @@ Here are some possible questions we could build our trivia questions around:
 * [ ] clyclomatic complexity
 * [ ] How many packages import Shiny?
 * [ ] How many packages import `%>%` (magrittr)?
-
+* [ ] Which package has the highest median number of parameters per exported function?
+* [ ] Which package has the lowest median number of parameters per exported function?
 
 ### Exploring for answers
+
+#### Which package has the largest size of total data size?
+
+```{r}
+df3 %>%
+  arrange(desc(data_size_median)) %>%
+  select(package, data_size_median)
+```
+
+
+#### Highest / Lowest median number of parameters per exported function
+
+```{r}
+most_exp <- arrange(df3, desc(npars_exported_md)) %>% select(package, npars_exported_md)
+#most_exp
+
+# grab metadata of the top 10
+pkg_most_names <- most_exp %>%
+  slice(1:10) %>%
+  pull(package)
+
+most_meta <- cran_packages(pkg_most_names)
+
+# many of these have median value of 0
+least_exp <- arrange(df3, npars_exported_md) %>% select(package, npars_exported_md)
+least_exp
+```
+
+#### Which package has the most contributors?
+
+```{r}
+df3 %>%
+  mutate(n_total_contrib = desc_n_aut + desc_n_ctb) %>%
+  select(package, n_total_contrib) %>%
+  arrange(desc(n_total_contrib))
+```
+
+#### Which package has the most R's in the name?
+
+```{r}
+# how many R's in the package name
+res <- df3 %>%
+  mutate(n_letters_R = stringr::str_count(package, "r|R")) %>%
+  select(package, n_letters_R) %>%
+  arrange(desc(n_letters_R))
+
+res
+```
+
 
 #### How many libraries does `tidymodels` import?
 
@@ -116,13 +168,7 @@ res <- df3 %>%
   select(package, pkg_n_letters) %>%
   arrange(desc(pkg_n_letters))
 
-# how many R's in the package name
-res <- df3 %>%
-  mutate(n_letters_R = stringr::str_count(package, "r|R")) %>%
-  select(package, n_letters_R) %>%
-  arrange(desc(n_letters_R))
 
-res
   
 ```
 #### Other than R and C/C++, what is the most compiled language that R wraps around?

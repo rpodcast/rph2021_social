@@ -8,7 +8,7 @@ source("utils.R")
 
 # declare options for the future package
 options(parallelly.fork.enable = TRUE)
-plan(multicore, workers = 6)
+plan(multicore, workers = 8)
 
 # load cached data set
 message("-----loading cached data-------")
@@ -33,4 +33,4 @@ df3 <- df2 %>%
   tidyr::unnest(cols = "stats_summ")
 
 message("------ saving data to file ------")
-save(df3, file = "df3.rds")
+saveRDS(df3, file = "df3.rds")
