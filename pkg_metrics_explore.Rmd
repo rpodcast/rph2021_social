@@ -20,12 +20,16 @@ df3 <- readRDS("df3.rds")
 Here are some possible questions we could build our trivia questions around:
 
 * [x] Which package in the tidyverse has the most lines of R code? [q1](#q1)
-* [x] Which package has the largest size of total data size? [q2](#q2)
-* [x] How many libraries does tidymodels import? (#tidymodelsimport) [q3](#q3)
+* [x] Which package has the most data files included? [q2](#q2)
+* [x] Which package in the core of tidymodels has the most lines of test code? (#tidymodelsimport) [q3](#q3)
 * [x] How many vignettes are available across CRAN? [q4](#q4)
 * [x] Which package has the most Rs in its name? [q5](#q5)
 * [x] What package has the most contributors? [q6](#q6)
-* [ ] Which package has the highest proportion of functions per R script?
+* [x] Which package has the highest median number of parameters per exported function? [q7](#q7)
+* [x] Which package has the most median number of documentation lines per function? [q8](#q8)
+* [x] Which of the following packages that imports htmlwidgets has the most lines of comments? [q9](#q9)
+* [x] Which package has the longest name, excluding special characters or punctuation characters? [q10](#q10)
+
 
 * [ ] Which of the following packages in the shiny ecosystem have the most functions?
 * [ ] How many R packages on CRAN serve data sets?
@@ -53,16 +57,23 @@ Here are some possible questions we could build our trivia questions around:
 * [ ] clyclomatic complexity
 * [ ] How many packages import Shiny?
 * [ ] How many packages import `%>%` (magrittr)?
-* [ ] Which package has the highest median number of parameters per exported function?
+
 * [ ] Which package has the lowest median number of parameters per exported function?
 
 ### Exploring for answers
+
+```{r}
+df3 <- df3 %>%
+  mutate(n_depends = ifelse(depends == "NA", 0, stringr::str_count(depends, ",") + 1)) %>%
+  mutate(n_imports = ifelse(imports == "NA", 0, stringr::str_count(imports, ",") + 1)) %>%
+  mutate(dependency_total = n_depends + n_imports)
+```
 
 #### Which package in the tidyverse has the most lines of R code? {#q1}
 
 ```{r}
 # step one: grab all tidyverse packages
-tidy_pkgs <- df3 %>%
+q1_imports <- df3 %>%
   filter(package == "tidyverse") %>%
   select(package, imports, depends, suggests) %>%
   pull(imports) %>%
@@ -70,87 +81,212 @@ tidy_pkgs <- df3 %>%
   .[[1]] %>%
   stringr::str_trim(.)
 
-tidy_pkgs
-
 # which tidyverse package has the most lines of R code
-res <- df3 %>%
-  filter(package %in% tidy_pkgs) %>%
+q1_db <- df3 %>%
+  filter(package %in% q1_imports) %>%
   select(package, loc_R, loc_src, blank_lines_R, comment_lines_R) %>%
   arrange(desc(loc_R))
 
-res
+most_meta <- cran_packages(pull(q1_db, package))
+
+q1_db <- left_join(q1_db, most_meta, by = c("package" = "Package")) %>%
+  mutate(choice_string = glue::glue("{package}: {Title}"))
+
+q1_answer <- "ggplot2"
+q1_incorrect <- c("rlang", "dplyr", "lubridate")
+
+q1_final_db <- q1_db %>%
+  filter(package %in% c(q1_answer, q1_incorrect))
+
+q1_total_code <- q1_final_db %>%
+  slice(1) %>%
+  pull(loc_R)
+
+q1_entry <- list(
+  quiz = 1,
+  qid = 1,
+  question_text = "Which package in the tidyverse (within the core or specialized packages) has the most lines of R code?",
+  answer_text = glue::glue("Within the tidyverse, {q1_answer} has {q1_total_code} lines of R code!"),
+  type = "choice",
+  choices_value = q1_final_db$package,
+  choices_text = q1_final_db$choice_string,
+  answer = q1_answer
+)
+
 ```
 
 
-#### Which package has the largest size of total data size? {#q2}
+#### Which package has the most data files included? {#q2}
 
 ```{r}
-df3 %>%
-  arrange(desc(data_size_median)) %>%
-  select(package, data_size_median)
+q2_db <- df3 %>%
+  arrange(desc(num_data_files)) %>%
+  select(package, data_size_median, num_data_files, data_size_total) %>%
+  slice(1:50)
+
+most_meta <- cran_packages(pull(q2_db, package))
+
+q2_db <- left_join(q2_db, most_meta, by = c("package" = "Package")) %>%
+  mutate(choice_string = glue::glue("{package}: {Title}"))
+
+q2_answer <- "Devore7"
+q2_incorrect <- c("openintro", "fivethirtyeight", "Lock5Data")
+
+q2_final_db <- q2_db %>%
+  filter(package %in% c(q2_answer, q2_incorrect))
+  
+q2_datafiles <- q2_final_db %>%
+  slice(1) %>%
+  pull(num_data_files)
+
+
+q2_entry <- list(
+  quiz = 1,
+  qid = 2,
+  question_text = "Which package on CRAN has the most data files?",
+  answer_text = glue::glue("The {q2_answer} package that accompanies the classic Probability and Statistics for Engineering and the Sciences (authored by Jay Devore) contains {q2_datafiles}! Who knows, maybe one of these sets will be featured on a future Tidy Tuesday?"),
+  type = "choice",
+  choices_value = q2_final_db$package,
+  choices_text = q2_final_db$choice_string,
+  answer = q2_answer
+)
 ```
 
-#### How many libraries does `tidymodels` import? {#q3}
-
-First we will derive the number of depends or imports for each package
-
+#### Which package in the core of `tidymodels` has the most lines of test code? {#q3}
 
 ```{r tidymodels}
-df3 <- df3 %>%
-  #filter(package == "tidymodels") %>%
-  #select(package, depends, imports) %>%
-  mutate(n_depends = ifelse(depends == "NA", 0, stringr::str_count(depends, ",") + 1)) %>%
-  mutate(n_imports = ifelse(imports == "NA", 0, stringr::str_count(imports, ",") + 1)) %>%
-  mutate(dependency_total = n_depends + n_imports)
+q3_core <- c("rsample", "parsnip", "recipes", "workflows", "tune", "yardstick", "broom", "dials")
 
-select(df3, package, n_depends, n_imports, dependency_total) %>%
-  slice_max(dependency_total)
+q3_imports <- df3 %>%
+  filter(package == "tidymodels") %>%
+  select(package, imports, depends, suggests) %>%
+  pull(imports) %>%
+  stringr::str_split(., ",") %>%
+  .[[1]] %>%
+  stringr::str_trim(.)
 
-filter(df3, package == "tidymodels") %>%
-  select(package, n_depends, n_imports, dependency_total)
+q3_db <- df3 %>%
+  filter(package %in% q3_core) %>%
+  select(package, loc_tests) %>%
+  arrange(desc(loc_tests))
+
+most_meta <- cran_packages(pull(q3_db, package))
+
+q3_db <- left_join(q3_db, most_meta, by = c("package" = "Package")) %>%
+  mutate(choice_string = glue::glue("{package}: {Title}"))
+
+q3_answer <- "recipes"
+q3_incorrect <- c("broom", "tune", "yardstick")
+
+q3_final_db <- q3_db %>%
+  filter(package %in% c(q3_answer, q3_incorrect))
+
+q3_loc_tests <- q3_final_db %>%
+  filter(package == q3_answer) %>%
+  pull(loc_tests)
+q3_entry <- list(
+  quiz = 1,
+  qid = 3,
+  question_text = "Which package in the core of tidymodels has the most lines of test code?",
+  answer_text = glue::glue("The leader of the testing pack in the tidymodels core is {q3_answer} with {q3_loc_tests} lines of testing code! Sign me up for testing if you see any pizza recipes that need a little attention ..."),
+  type = "choice",
+  choices_value = q3_final_db$package,
+  choices_text = q3_final_db$choice_string,
+  answer = q3_answer
+)
 ```
 
 #### Total vignettes on CRAN? {#q4}
 
 ```{r}
-df3 %>% summarize(n_vignettes_total = sum(num_vignettes, na.rm = TRUE))
+q4_answer <- df3 %>% 
+  summarize(n_vignettes_total = sum(num_vignettes, na.rm = TRUE)) %>%
+  pull(n_vignettes_total)
+
+q4_entry <- list(
+  quiz = 1,
+  qid = 4,
+  question_text = "How many package vignettes are available across the entire CRAN package library? Values that are within 250 of the correct total (either under or over) will count!",
+  answer_text = glue::glue("Can you believe their are {q4_answer} vignettes across the entire CRAN package library? That is a lot of reading material!"),
+  type = "number",
+  answer = q4_answer
+)
 ```
 
 #### Which package has the most R's in the name? {#q5}
 
 ```{r}
 # how many R's in the package name
-res <- df3 %>%
+q5_db <- df3 %>%
   mutate(n_letters_R = stringr::str_count(package, "r|R")) %>%
   select(package, n_letters_R) %>%
-  arrange(desc(n_letters_R))
+  arrange(desc(n_letters_R)) %>%
+  slice(1:50)
 
-res
+most_meta <- cran_packages(pull(q5_db, package))
+
+q5_db <- left_join(q5_db, most_meta, by = c("package" = "Package")) %>%
+  mutate(choice_string = glue::glue("{package}: {Title}"))
+
+q5_answer <- q5_db %>%
+  slice(1) %>%
+  pull(package)
+
+q5_entry <- list(
+  quiz = 1,
+  qid = 5,
+  question_text = "Which package has the most R's in its name? Both upper and lower-case versions count. The correct spelling of the package (irrespective of case) will be accepted. Hint: If the package had a favorite type of clothing, it would likely have a closet full of jeans!",
+  answer_text = "The honor goes to tigreBrowserWriter, the package that empowers you to write gene expression model results into the database format used by the tigreBrowser, part of the innovative Bioconductor suite of packages for powerful bioinformatics and genetic analyses with R.",
+  type = "text",
+  answer = q5_answer
+)
 ```
 
 #### Which package has the most contributors? {#q6}
 
 ```{r}
-df3 %>%
+q6_db <- df3 %>%
   mutate(n_total_contrib = desc_n_aut + desc_n_ctb) %>%
   select(package, n_total_contrib) %>%
-  arrange(desc(n_total_contrib))
+  arrange(desc(n_total_contrib)) %>%
+  slice(1:50)
 
-# todo create ggplot  
+most_meta <- cran_packages(pull(q6_db, package))
+
+q6_db <- left_join(q6_db, most_meta, by = c("package" = "Package")) %>%
+  mutate(choice_string = glue::glue("{package}: {Title}"))
+
+q6_answer <- "mlpack"
+q6_incorrect <- c("broom", "rcorpora", "data.table")
+
+q6_final_db <- q6_db %>%
+  filter(package %in% c(q6_answer, q6_incorrect))
+
+# todo create ggplot
+q6_entry <- list(
+  quiz = 1,
+  qid = 6,
+  question_text = "Which package has the most contributors? This includes both the author (aut) and contributor (ctb) roles for a package.",
+  answer_text = "The mlpack package leads the way with 137 authors and contributors! I can't say I am too surprised as writing a machine learning library in only C++ code alongside bindings to other languages is no small task.",
+  type = "choice",
+  choices_value = q6_final_db$package,
+  choices_text = q6_final_db$choice_string,
+  answer = q6_answer
+)
 ```
 
 
 
-#### Highest / Lowest median number of parameters per exported function
+#### Which package has the highest median parameters per exported function? {#q7}
 
 ```{r}
 most_exp <- arrange(df3, desc(npars_exported_md)) %>% 
-  slice(1:10) %>%
+  slice(1:50) %>%
   select(package, npars_exported_md)
 
 #most_exp
 
-# grab metadata of the top 10
+# grab metadata of the top 50
 pkg_most_names <- most_exp %>%
   pull(package)
 
@@ -158,50 +294,145 @@ most_meta <- cran_packages(pkg_most_names)
 
 most_exp <- left_join(most_exp, most_meta, by = c("package" = "Package"))
 
+q7_answer <- "lchemix"
+q7_incorrect <- c("stargazer", "BioVenn", "ggrisk")
+
+q7_final_db <- most_exp %>%
+  filter(package %in% c(q7_answer, q7_incorrect)) %>%
+  mutate(choice_string = glue::glue("{package}: {Title}")) %>%
+
+  select(package, choice_string, npars_exported_md)
+
+q7_entry <- list(
+  quiz = 1,
+  qid = 7,
+  question_text = "Which package has the highest median parameters per exported function?",
+  answer_text = "The lchemix package has a median of 91 parameters per exported function. That is a lot of parameters!",
+  type = "choice",
+  choices_value = q7_final_db$package,
+  choices_text = q7_final_db$choice_string,
+  answer = q7_answer
+)
+```
+
+#### Which package has the most median number of documentation lines per function? {#q8}
+
+```{r}
+q8_db <- arrange(df3, desc(doclines_per_fn_exp_md)) %>% 
+  slice(1:50) %>%
+  select(package, doclines_per_fn_exp_md, doclines_per_fn_exp_mn, docchars_per_par_exp_mn, docchars_per_par_exp_md)
+
+most_meta <- cran_packages(pull(q8_db, package))
+
+q8_db <- left_join(q8_db, most_meta, by = c("package" = "Package")) %>%
+  mutate(choice_string = glue::glue("{package}: {Title}"))
+
+q8_answer <- "tidySEM"
+q8_incorrect <- c("rtables", "mapview", "dreamer")
+
+q8_final_db <- q8_db %>%
+  filter(package %in% c(q8_answer, q8_incorrect))
+
+q8_doc_lines <- q8_final_db %>%
+  filter(package == q8_answer) %>%
+  pull(doclines_per_fn_exp_md)
+
+q8_entry <- list(
+  quiz = 1,
+  qid = 8,
+  question_text = "Which package has the highest median number of documentation lines per function?",
+  answer_text = glue::glue("Nothing beats excellent documentation, and the {q8_answer} package is chock full of documentation with approximately {q8_doc_lines} median documentation lines per function!"),
+  type = "choice",
+  choices_value = q8_final_db$package,
+  choices_text = q8_final_db$choice_string,
+  answer = q8_answer
+)
+
+```
+
+#### Which of the following packages that imports htmlwidgets has the most comments in R files? {#q9}
+```{r}
+# rinterface_packages <- c("bs4Dash", "shinydashboardPlus", "argonDash", "tablerDash", "argonR", "shinybulma", "shinyMobile",  "shinyEffects", "fullPage", "mobileCharts")
+
+# q9_db <- df3 %>%
+#   filter(package %in% rinterface_packages) %>%
+#   arrange(desc(n_fns_r)) 
 
 
-# many of these have median value of 0
-least_exp <- arrange(df3, npars_exported_md) %>% select(package, npars_exported_md)
-least_exp
+q9_htmlwidgets_imports <- df3 %>%
+  mutate(imports_split = purrr::map(imports, ~stringr::str_split(.x, ",")[[1]])) %>%
+  mutate(imports_htmlwidgets = purrr::map_lgl(imports_split, function(x) {
+    x <- stringr::str_trim(x)
+    res <- "htmlwidgets" %in% x
+    return(res)
+  })) %>%
+  #select(package, imports, imports_split, imports_shiny, n_fns_r) %>%
+  arrange(desc(comment_lines_R)) %>%
+  #filter(package == "shinydashboard")
+  filter(imports_htmlwidgets) %>%
+  select(package, n_fns_r, n_fns_per_file_r, comment_lines_R)
+
+most_meta <- cran_packages(pull(q9_htmlwidgets_imports, package))
+
+q9_db <- q9_htmlwidgets_imports %>%
+  left_join(most_meta, by = c("package" = "Package")) %>%
+  mutate(choice_string = glue::glue("{package}: {Title}"))
+
+q9_answer <- "DiagrammeR"
+q9_incorrect <- c("echarts4r", "plotly", "visNetwork")
+
+q9_final_db <- q9_db %>%
+  filter(package %in% c(q9_answer, q9_incorrect))
+
+q9_loc_comments <- q9_final_db %>%
+  filter(package == q9_answer) %>%
+  pull(comment_lines_R)
+q9_entry <- list(
+  quiz = 1,
+  qid = 9,
+  question_text = "Which of the following packages that imports htmlwidgets has the most comment lines in R files?",
+  answer_text = glue::glue("Low and behold, the {q9_answer} package authored by the first keynote speaker of R/Pharma 2021 Richard Iannone takes the crown with {q9_loc_comments} comment lines! Fun fact: Richard discussed the early developments and origin story of gt with Eric Nantz in episode 27 of the R-Podcast."),
+  type = "choice",
+  choices_value = q9_final_db$package,
+  choices_text = q9_final_db$choice_string,
+  answer = q9_answer
+)
 ```
 
 
 
-
-#### which tidyverse package has the most imports (dependencies)
-
-```{r}
-res <- df3 %>%
-  filter(package %in% tidy_pkgs) %>%
-  select(package, n_depends, n_imports, dependency_total) %>%
-  arrange(desc(dependency_total))
-```
-
-#### Packages with longest/shortest names
-
-We could also ask how long is the longest package name?
+#### Which package has the longest name, excluding special characters or punctuation characters? {#q10}
 
 ```{r}
-res <- df3 %>%
-  mutate(pkg_n_letters = stringr::str_length(package)) %>%
-  select(package, pkg_n_letters) %>%
-  arrange(desc(pkg_n_letters))
+q10_db <- df3 %>%
+  mutate(package_clean = stringr::str_replace_all(package, "[[:punct:]]", "")) %>%
+  mutate(pkg_n_letters = stringr::str_length(package_clean)) %>%
+  select(package, package_clean, pkg_n_letters) %>%
+  arrange(desc(pkg_n_letters)) %>%
+  slice(1:50)
+
+q10_answer <- q10_db %>%
+  slice(1) %>%
+  pull(package)
 
 
+q10_entry <- list(
+  quiz = 1,
+  qid = 10,
+  question_text = "Which package has the longest name, excluding special characters or punctuation characters? The correct spelling of the package (irrespective of case) will be accepted. Hint: The statistical methods in this package would be a great fit to predicting whether the conference attendees like taking this quiz (or not)!",
+  answer_text = glue::glue("The longest name trophy (virtual of course) goes to the {q10_answer} package!"),
+  type = "text",
+  answer = q10_answer
+)
   
 ```
-#### Other than R and C/C++, what is the most compiled language that R wraps around?
+
+## Assembline quiz questions
 
 ```{r}
-sort(unique(df3$languages))
+quiz1_items <- list(
+  q1_entry, q2_entry, q3_entry, q4_entry, q5_entry, q6_entry, q7_entry, q8_entry, q9_entry, q10_entry
+)
+
+saveRDS(quiz1_items, "prototyping/quiz1_items.rds")
 ```
-
-#### Which package has the most amount of documentation (or documentation to code ratio)
-
-```{r}
-df3 %>%
-  select(package, doclines_per_fn_exp_mn, doclines_per_fn_exp_md, doclines_per_fn_not_exp_mn, doclines_per_fn_not_exp_md, docchars_per_par_exp_mn, docchars_per_par_exp_md) %>%
-  arrange(desc(doclines_per_fn_exp_md))
-```
-
-
