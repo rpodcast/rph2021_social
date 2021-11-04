@@ -30,8 +30,6 @@ Here are some possible questions we could build our trivia questions around:
 * [x] Which of the following packages that imports htmlwidgets has the most lines of comments? [q9](#q9)
 * [x] Which package has the longest name, excluding special characters or punctuation characters? [q10](#q10)
 
-
-* [ ] Which of the following packages in the shiny ecosystem have the most functions?
 * [ ] How many R packages on CRAN serve data sets?
 * [ ] Which of the following packages has the most if statements?
 * [ ] What package other than `{tidyverse}` has the most recursive dependencies?
